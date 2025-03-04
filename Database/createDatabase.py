@@ -1,10 +1,8 @@
 import sqlite3
 
-# Connect to SQLite database (or create it if it doesn't exist)
 conn = sqlite3.connect("library.db")
 cursor = conn.cursor()
 
-# Create tables
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS Students (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,7 +38,6 @@ CREATE TABLE IF NOT EXISTS DataLog (
 );
 ''')
 
-# Commit changes and close connection
 conn.commit()
 conn.close()
 
