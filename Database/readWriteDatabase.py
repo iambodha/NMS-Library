@@ -1,5 +1,5 @@
 import sqlite3
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict
 
 # Utility function to get a database connection
 # Make sure "library.db" is accessible in the current directory.
@@ -80,6 +80,39 @@ def get_students() -> List[Tuple]:
     results = cursor.fetchall()
     conn.close()
     return results
+
+def search_student(student_id: Optional[int] = None, uuid: Optional[str] = None, full_name: Optional[str] = None) -> Optional[Dict[str, any]]:
+    """Searches for a student based on id, uuid, or full_name."""
+    if not any([student_id, uuid, full_name]):
+        raise ValueError("At least one search parameter must be provided")
+
+    query = "SELECT * FROM Students WHERE "
+    params = []
+
+    conditions = []
+    if student_id is not None:
+        conditions.append("id = ?")
+        params.append(student_id)
+    if uuid is not None:
+        conditions.append("uuid = ?")
+        params.append(uuid)
+    if full_name is not None:
+        conditions.append("full_name = ?")
+        params.append(full_name)
+
+    query += " OR ".join(conditions)
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(query, tuple(params))
+    result = cursor.fetchone()
+    conn.close()
+
+    if result is None:
+        return None
+
+    columns = [desc[0] for desc in cursor.description]
+    return dict(zip(columns, result))
 
 # --------------------------------
 # BOOK FUNCTIONS
@@ -169,14 +202,19 @@ def log_action(book_id: int, student_id: int, action: str) -> None:
     """Logs a borrow or return action in the DataLog."""
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        """
-        INSERT INTO DataLog (book_id, student_id, action)
-        VALUES (?, ?, ?)""",
-        (book_id, student_id, action)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        cursor.execute(
+            """
+            INSERT INTO DataLog (book_id, student_id, action)
+            VALUES (?, ?, ?)""",
+            (book_id, student_id, action)
+        )
+        conn.commit()
+    except Exception as e:
+        print(f"Failed to log action: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
 
 
 def get_log_entries() -> List[Tuple]:
@@ -273,7 +311,7 @@ def main():
     print("All logs:", get_log_entries())
 
 if __name__ == "__main__":
-    main()
+    print(search_student(1))
 
-# Search a Student
+
 # Search a Book
